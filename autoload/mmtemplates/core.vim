@@ -11,7 +11,7 @@
 "  Organization:  
 "       Version:  see variable g:Templates_Version below
 "       Created:  30.08.2011
-"      Revision:  04.01.2013
+"      Revision:  11.02.2013
 "       License:  Copyright (c) 2012-2013, Wolfgang Mehner
 "                 This program is free software; you can redistribute it and/or
 "                 modify it under the terms of the GNU General Public License as
@@ -41,7 +41,7 @@ endif
 if &cp || ( exists('g:Templates_Version') && ! exists('g:Templates_DevelopmentOverwrite') )
 	finish
 endif
-let g:Templates_Version= '0.9.1'     " version number of this script; do not change
+let g:Templates_Version= '0.9.1-2'     " version number of this script; do not change
 "
 if ! exists ( 'g:Templates_MapInUseWarn' )
 	let g:Templates_MapInUseWarn = 1
@@ -213,7 +213,6 @@ function! s:UpdateTemplateRegex ( regex, settings )
 	let a:regex.MacroName    = a:settings.MacroName
 	let a:regex.MacroNameC   = '\('.a:settings.MacroName.'\)'
 	let a:regex.MacroMatch   = '^'.a:settings.MacroStart.a:settings.MacroName.a:settings.MacroEnd.'$'
-	let a:regex.MacroSimple  = a:settings.MacroStart.a:settings.MacroName.a:settings.MacroEnd
 	"
 	" Syntax Categories
 	let a:regex.FunctionLine    = '^'.a:settings.MacroStart.'\('.a:regex.MacroNameC.'(\(.*\))\)'.a:settings.MacroEnd.'\s*\n'
@@ -223,6 +222,7 @@ function! s:UpdateTemplateRegex ( regex, settings )
 	let a:regex.FunctionInsert  = a:settings.MacroStart.'\(Insert\|InsertLine\)'.'(\(.\{-}\))'.a:settings.MacroEnd
 	let a:regex.MacroRequest    = a:settings.MacroStart.'?'.a:regex.MacroNameC.'\%(:\(\a\)\)\?'.a:settings.MacroEnd
 	let a:regex.MacroInsert     = a:settings.MacroStart.''.a:regex.MacroNameC.'\%(:\(\a\)\)\?'.a:settings.MacroEnd
+	let a:regex.MacroNoCapture  = a:settings.MacroStart.a:settings.MacroName.'\%(:\a\)\?'.a:settings.MacroEnd
 	let a:regex.ListItem        = a:settings.MacroStart.''.a:regex.MacroNameC.':ENTRY_*'.a:settings.MacroEnd
 	"
 	let a:regex.TextBlockFunctions = '^\%(C\|Comment\|Insert\|InsertLine\)$'
@@ -1484,7 +1484,7 @@ function! s:ReplaceMacros ( text, m_local )
 			let m_text = get ( s:library.macros, mlist[2], '' )
 		end
 		"
-		if m_text =~ s:library.regex_template.MacroSimple
+		if m_text =~ s:library.regex_template.MacroNoCapture
 			"
 			call add ( s:t_runtime.macro_stack, mlist[2] )
 			"
@@ -2399,14 +2399,14 @@ function! s:InsertIntoBuffer ( text, placement, indentation, flag_mode )
 			exe ':'.s:t_runtime.range[1]
 			call s:OpenFold('below')
 			let pos1 = line(".")+1
-			put = text
+			silent put = text
 			let pos2 = line(".")
 			"
 		elseif placement == 'above'
 			"
 			exe ':'.s:t_runtime.range[0]
 			let pos1 = line(".")
-			put! = text
+			silent put! = text
 			let pos2 = line(".")
 			"
 		elseif placement == 'start'
@@ -2414,7 +2414,7 @@ function! s:InsertIntoBuffer ( text, placement, indentation, flag_mode )
 			exe ':1'
 			call s:OpenFold('start')
 			let pos1 = 1
-			put! = text
+			silent put! = text
 			let pos2 = line(".")
 			"
 		elseif placement == 'append' || placement == 'insert'
@@ -2423,7 +2423,7 @@ function! s:InsertIntoBuffer ( text, placement, indentation, flag_mode )
 				throw 'Template:Insert:insertion not available for a closed fold'
 			elseif placement == 'append'
 				let pos1 = line(".")
-				put = text
+				silent put = text
 				let pos2 = line(".")-1
 				exe ":".pos1
 				:join!
@@ -2492,8 +2492,8 @@ function! s:InsertIntoBuffer ( text, placement, indentation, flag_mode )
 			let pos1 = l1
 			let pos2 = l2 + len(split( text, '\n' )) - 1
 		elseif placement == 'below'
-			:'<put! = part[0]
-			:'>put  = part[1]
+			silent '<put! = part[0]
+			silent '>put  = part[1]
 			let pos1 = line("'<") - len(split( part[0], '\n' ))
 			let pos2 = line("'>") + len(split( part[1], '\n' ))
 		elseif placement =~ '^\%(start\|above\|append\)$'
@@ -2506,8 +2506,8 @@ function! s:InsertIntoBuffer ( text, placement, indentation, flag_mode )
 	"
 	" proper indenting
 	if indentation
-		exe ":".pos1
-		exe "normal ".( pos2-pos1+1 )."=="
+		silent exe ":".pos1
+		silent exe "normal ".( pos2-pos1+1 )."=="
 	endif
 	"
 	return [ pos1, pos2 ]
@@ -2521,26 +2521,39 @@ endfunction    " ----------  end of function s:InsertIntoBuffer  ----------
 "
 function! s:PositionCursor ( placement, flag_mode, pos1, pos2 )
 	"
-	" TODO: syntax
+	" :TODO:12.08.2013 11:03:WM: changeable syntax?
+	" :TODO:12.08.2013 12:00:WM: change behavior?
 	"
 	exe ":".a:pos1
 	let mtch = search( '<CURSOR>\|{CURSOR}', 'c', a:pos2 )
-	if mtch != 0  " CURSOR found:
+	if mtch != 0
+		" tag found (and cursor moved, we are now at the position of the match)
 		let line = getline(mtch)
 		if line =~ '<CURSOR>$\|{CURSOR}$'
+			" the tag is at the end of the line
 			call setline( mtch, substitute( line, '<CURSOR>\|{CURSOR}', '', '' ) )
-			if a:flag_mode == 'v' && getline(".") =~ '^\s*$'
+			if a:flag_mode == 'v' && getline('.') =~ '^\s*$'
+			"if a:flag_mode == 'v' && getline('.') =~ '^\s*\%(<CURSOR>\|{CURSOR}\)\s*$'
+				" the line contains nothing but the tag: remove and join without
+				" changing the second line
 				normal J
+				"call setline( mtch, '' )
+				"normal gJ
 			else
+				" the line contains other characters: remove the tag and start appending
+				"call setline( mtch, substitute( line, '<CURSOR>\|{CURSOR}', '', '' ) )
 				startinsert!
 			endif
 		else
+			" the line contains other characters: remove the tag and start inserting
 			call setline( mtch, substitute( line, '<CURSOR>\|{CURSOR}', '', '' ) )
-			:startinsert
+			startinsert
 		endif
-	else          " no CURSOR found
+	else
+		" no tag found (and cursor not moved)
 		if a:placement == 'below'
-			exe ":".a:pos2       | " to the end of the block; needed for repeated inserts
+			" to the end of the block, needed for repeated inserts
+			exe ":".a:pos2
 		endif
 	endif
 	"
@@ -3071,20 +3084,20 @@ function! s:CreateTemplateMenus ( t_lib, root_menu, global_name, t_lib_name )
 		"
 		if entry == 1
 			" <Esc><Esc> prevents problems in insert mode
-			exe 'amenu '.a:root_menu.compl_entry.map_entry.' <Esc><Esc>:call mmtemplates#core#InsertTemplate('.a:t_lib_name.',"'.t_name.'")<CR>'
-			exe 'imenu '.a:root_menu.compl_entry.map_entry.' <Esc><Esc>:call mmtemplates#core#InsertTemplate('.a:t_lib_name.',"'.t_name.'","i")<CR>'
+			exe 'amenu <silent> '.a:root_menu.compl_entry.map_entry.' <Esc><Esc>:call mmtemplates#core#InsertTemplate('.a:t_lib_name.',"'.t_name.'")<CR>'
+			exe 'imenu <silent> '.a:root_menu.compl_entry.map_entry.' <Esc><Esc>:call mmtemplates#core#InsertTemplate('.a:t_lib_name.',"'.t_name.'","i")<CR>'
 			if visual == 1
-				exe 'vmenu '.a:root_menu.compl_entry.map_entry.' <Esc><Esc>:call mmtemplates#core#InsertTemplate('.a:t_lib_name.',"'.t_name.'","v")<CR>'
+				exe 'vmenu <silent> '.a:root_menu.compl_entry.map_entry.' <Esc><Esc>:call mmtemplates#core#InsertTemplate('.a:t_lib_name.',"'.t_name.'","v")<CR>'
 			endif
 		elseif entry == 2
 			call s:CreateSubmenu ( a:t_lib, a:root_menu, a:global_name, t_menu.t_last.map_entry, s:StandardPriority )
 			"
 			for item in s:GetPickList ( t_name )
 				let item_entry = compl_entry.'.'.substitute ( substitute ( escape ( item, ' .' ), '&', '\&\&', 'g' ), '\w', '\&&', '' )
-				exe 'amenu '.a:root_menu.item_entry.' <Esc><Esc>:call mmtemplates#core#InsertTemplate('.a:t_lib_name.',"'.t_name.'","pick",'.string(item).')<CR>'
-				exe 'imenu '.a:root_menu.item_entry.' <Esc><Esc>:call mmtemplates#core#InsertTemplate('.a:t_lib_name.',"'.t_name.'","i","pick",'.string(item).')<CR>'
+				exe 'amenu <silent> '.a:root_menu.item_entry.' <Esc><Esc>:call mmtemplates#core#InsertTemplate('.a:t_lib_name.',"'.t_name.'","pick",'.string(item).')<CR>'
+				exe 'imenu <silent> '.a:root_menu.item_entry.' <Esc><Esc>:call mmtemplates#core#InsertTemplate('.a:t_lib_name.',"'.t_name.'","i","pick",'.string(item).')<CR>'
 				if visual == 1
-					exe 'vmenu '.a:root_menu.item_entry.' <Esc><Esc>:call mmtemplates#core#InsertTemplate('.a:t_lib_name.',"'.t_name.'","v","pick",'.string(item).')<CR>'
+					exe 'vmenu <silent> '.a:root_menu.item_entry.' <Esc><Esc>:call mmtemplates#core#InsertTemplate('.a:t_lib_name.',"'.t_name.'","v","pick",'.string(item).')<CR>'
 				endif
 			endfor
 			"
@@ -3336,11 +3349,11 @@ function! mmtemplates#core#ChooseStyle ( library, style )
 	if style == ''
 		" noop
 	elseif -1 != index ( t_lib.styles, style )
-		if t_lib.current_style == style
-			echo 'Style stayed "'.style.'".'
-		else
+		if t_lib.current_style != style
 			let t_lib.current_style = style
 			echo 'Changed style to "'.style.'".'
+		elseif a:style == '!pick'
+			echo 'Style stayed "'.style.'".'
 		endif
 	else
 		call s:ErrorMsg ( 'Style was not changed. Style "'.style.'" is not available.' )

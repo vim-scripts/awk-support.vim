@@ -1,7 +1,7 @@
-*awksupport.txt*                Awk Support                   January 12 2012
+*awksupport.txt*                Awk Support                   August 11 2012
 
 Awk Support                                         *awk-support* *awksupport*
-                              Plugin version 1.0
+                              Plugin version 1.1
                         for Vim version 7.0 and above
                   Fritz Mehner  <mehner.fritz at fh-swf.de>
                 Wolfgang Mehner  <wolfgang-mehner at web.de>
@@ -75,7 +75,7 @@ from the standard Tools-menu.
 1.1.1 APPEND ALIGNED COMMENTS TO CONSECUTIVE LINES   *awksupport-comm-aligned*
 --------------------------------------------------
 
-In NORMAL MODE the menu item 'end-of-line comments' will append a comment to
+In NORMAL MODE the menu item 'end-of-line comment' will append a comment to
 the current line.
 In VISUAL MODE, this item will append aligned comments to all marked lines.
 Marking the 4 lines
@@ -85,7 +85,7 @@ Marking the 4 lines
 
  z = 55
 <
-and choosing 'end-of-line comments' will yield
+and choosing 'end-of-line comment' will yield
 >
  x = 33                                        # |
  y = 44                                        #
@@ -172,7 +172,6 @@ Usually these comments are not meant for the final documentation.
 --------------------------------
 An empty statement will be inserted and properly indented. The item 'if block'
 will insert an if-statement:
->
 >
  if (  ) {
    <-IF_PART->
@@ -603,7 +602,7 @@ Legend:  (i) insert mode, (n) normal mode, (v) visual mode
      \re     make script executable           (n, i)
      \rh     hardcopy buffer to FILENAME.ps   (n, i)
      \rse    settings and hot keys            (n, i)
-     \rt     xterm size                       (n, i)
+     \rx     xterm size                       (n, i)
      \ro     switch output destination        (n, i)
 
   -- help ----------------------------------------------
