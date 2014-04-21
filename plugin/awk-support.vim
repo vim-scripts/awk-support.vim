@@ -1,19 +1,19 @@
 "===============================================================================
 "
 "          File:  awk-support.vim
-" 
+"
 "   Description:  awk support
 "
 "                  Write awk scripts by inserting comments, statements,
 "                  variables and builtins.
-" 
+"
 "   VIM Version:  7.0+
 "        Author:  Dr. Fritz Mehner (fgm), mehner.fritz@fh-swf.de
 "  Organization:  FH Südwestfalen, Iserlohn
 "       Version:  see variable g:AwkSupportVersion below
 "       Created:  14.01.2012 10:49
 "      Revision:  0.1
-"       License:  Copyright (c) 2012-2013, Dr. Fritz Mehner
+"       License:  Copyright (c) 2012-2014, Dr. Fritz Mehner
 "                 This program is free software; you can redistribute it and/or
 "                 modify it under the terms of the GNU General Public License as
 "                 published by the Free Software Foundation, version 2 of the
@@ -36,7 +36,7 @@ if exists("g:AwkSupportVersion") || &cp
  finish
 endif
 "
-let g:AwkSupportVersion= "1.1"                  " version number of this script; do not change
+let g:AwkSupportVersion= "1.2"                  " version number of this script; do not change
 "
 "===  FUNCTION  ================================================================
 "          NAME:  awk_SetGlobalVariable     {{{1
@@ -61,7 +61,7 @@ endfunction   " ---------- end of function  s:awk_SetGlobalVariable  ----------
 "          NAME:  GetGlobalSetting     {{{1
 "   DESCRIPTION:  take over a global setting
 "    PARAMETERS:  varname - variable to set
-"       RETURNS:  
+"       RETURNS:
 "===============================================================================
 function! s:GetGlobalSetting ( varname )
 	if exists ( 'g:'.a:varname )
@@ -73,7 +73,7 @@ endfunction    " ----------  end of function s:GetGlobalSetting  ----------
 "          NAME:  ApplyDefaultSetting     {{{1
 "   DESCRIPTION:  make a local setting global
 "    PARAMETERS:  varname - variable to set
-"       RETURNS:  
+"       RETURNS:
 "===============================================================================
 function! s:ApplyDefaultSetting ( varname )
 	if ! exists ( 'g:'.a:varname )
@@ -88,10 +88,9 @@ let s:MSWIN = has("win16") || has("win32")   || has("win64") || has("win95")
 let s:UNIX	= has("unix")  || has("macunix") || has("win32unix")
 "
 let s:installation						= '*undefined*'
+let g:Awk_PluginDir						= ''
 let s:Awk_GlobalTemplateFile	= ''
-let s:Awk_GlobalTemplateDir		= ''
 let s:Awk_LocalTemplateFile		= ''
-let s:Awk_LocalTemplateDir		= ''
 let s:Awk_FilenameEscChar 		= ''
 let s:Awk_XtermDefaults       = '-fa courier -fs 12 -geometry 80x24'
 
@@ -99,24 +98,21 @@ let s:Awk_XtermDefaults       = '-fa courier -fs 12 -geometry 80x24'
 if	s:MSWIN
   " ==========  MS Windows  ======================================================
 	"
+	let s:Awk_PluginDir = substitute( expand('<sfile>:p:h:h'), '\', '/', 'g' )
+	"
 	" change '\' to '/' to avoid interpretation as escape character
-	if match(	substitute( expand("<sfile>"), '\', '/', 'g' ), 
+	if match(	substitute( expand("<sfile>"), '\', '/', 'g' ),
 				\		substitute( expand("$HOME"),   '\', '/', 'g' ) ) == 0
 		"
 		" USER INSTALLATION ASSUMED
 		let s:installation					= 'local'
-		let s:plugin_dir  					= substitute( expand('<sfile>:p:h:h'), '\', '/', 'g' )
-		let s:Awk_LocalTemplateFile	= s:plugin_dir.'/awk-support/templates/Templates'
-		let s:Awk_LocalTemplateDir	= fnamemodify( s:Awk_LocalTemplateFile, ":p:h" ).'/'
+		let s:Awk_LocalTemplateFile	= s:Awk_PluginDir.'/awk-support/templates/Templates'
 	else
 		"
 		" SYSTEM WIDE INSTALLATION
 		let s:installation					= 'system'
-		let s:plugin_dir						= $VIM.'/vimfiles'
-		let s:Awk_GlobalTemplateDir	= s:plugin_dir.'/awk-support/templates'
-		let s:Awk_GlobalTemplateFile= s:Awk_GlobalTemplateDir.'/Templates'
+		let s:Awk_GlobalTemplateFile= s:Awk_PluginDir.'/awk-support/templates/Templates'
 		let s:Awk_LocalTemplateFile	= $HOME.'/vimfiles/awk-support/templates/Templates'
-		let s:Awk_LocalTemplateDir	= fnamemodify( s:Awk_LocalTemplateFile, ":p:h" ).'/'
 	endif
 	"
   let s:Awk_FilenameEscChar 		= ''
@@ -128,22 +124,20 @@ if	s:MSWIN
 else
   " ==========  Linux/Unix  ======================================================
 	"
+	let s:Awk_PluginDir = expand("<sfile>:p:h:h")
+	"
 	if match( expand("<sfile>"), resolve( expand("$HOME") ) ) == 0
 		"
 		" USER INSTALLATION ASSUMED
 		let s:installation					= 'local'
-		let s:plugin_dir 						= expand('<sfile>:p:h:h')
-		let s:Awk_LocalTemplateFile	= s:plugin_dir.'/awk-support/templates/Templates'
-		let s:Awk_LocalTemplateDir	= fnamemodify( s:Awk_LocalTemplateFile, ":p:h" ).'/'
+		let s:Awk_LocalTemplateFile	= s:Awk_PluginDir.'/awk-support/templates/Templates'
 	else
 		"
 		" SYSTEM WIDE INSTALLATION
 		let s:installation					= 'system'
-		let s:plugin_dir						= $VIM.'/vimfiles'
-		let s:Awk_GlobalTemplateDir	= s:plugin_dir.'/awk-support/templates'
-		let s:Awk_GlobalTemplateFile= s:Awk_GlobalTemplateDir.'/Templates'
+		let s:Awk_PluginDir					= $VIM.'/vimfiles'
+		let s:Awk_GlobalTemplateFile= s:Awk_PluginDir.'/awk-support/templates/Templates'
 		let s:Awk_LocalTemplateFile	= $HOME.'/.vim/awk-support/templates/Templates'
-		let s:Awk_LocalTemplateDir	= fnamemodify( s:Awk_LocalTemplateFile, ":p:h" ).'/'
 	endif
 	"
 	let s:Awk_Awk									= '/usr/bin/awk'
@@ -154,14 +148,14 @@ else
 	"
 endif
 "
-let s:Awk_CodeSnippets  				= s:plugin_dir.'/awk-support/codesnippets/'
+let s:Awk_CodeSnippets  				= s:Awk_PluginDir.'/awk-support/codesnippets/'
 call s:awk_SetGlobalVariable( 'Awk_CodeSnippets', s:Awk_CodeSnippets )
 "
 "
 "  g:Awk_Dictionary_File  must be global
 "
 if !exists("g:Awk_Dictionary_File")
-	let g:Awk_Dictionary_File     = s:plugin_dir.'/awk-support/wordlists/awk-keywords.list'
+	let g:Awk_Dictionary_File     = s:Awk_PluginDir.'/awk-support/wordlists/awk-keywords.list'
 endif
 "
 "----------------------------------------------------------------------
@@ -180,9 +174,10 @@ let s:Awk_StartComment					= '#'
 let s:Awk_Printheader   				= "%<%f%h%m%<  %=%{strftime('%x %X')}     Page %N"
 let s:Awk_TemplateJumpTarget 		= ''
 let s:Awk_Errorformat    				= 'awk:\ %f:%l:\ %m'
-let s:Awk_Wrapper               = s:plugin_dir.'/awk-support/scripts/wrapper.sh'
+let s:Awk_Wrapper               = s:Awk_PluginDir.'/awk-support/scripts/wrapper.sh'
 let s:Awk_InsertFileHeader			= 'yes'
 "
+call s:GetGlobalSetting ( 'Awk_Awk')
 call s:GetGlobalSetting ( 'Awk_InsertFileHeader ')
 call s:GetGlobalSetting ( 'Awk_GuiSnippetBrowser' )
 call s:GetGlobalSetting ( 'Awk_LoadMenus' )
@@ -252,93 +247,118 @@ function! Awk_Input ( prompt, defaultreply, ... )
 	return retval
 endfunction    " ----------  end of function Awk_Input ----------
 "
+" patterns to ignore when adjusting line-end comments (incomplete):
+let	s:AlignRegex	= [
+	\	'\$#' ,
+	\	"'\\%(\\\\'\\|[^']\\)*'"  ,
+	\	'"\%(\\.\|[^"]\)*"'  ,
+	\	'`[^`]\+`' ,
+	\	]
+"
 "===  FUNCTION  ================================================================
 "          NAME:  Awk_AdjustLineEndComm     {{{1
 "   DESCRIPTION:  adjust end-of-line comments
 "    PARAMETERS:  -
-"       RETURNS:  
+"       RETURNS:
 "===============================================================================
 function! Awk_AdjustLineEndComm ( ) range
 	"
+	" comment character (for use in regular expression)
+	let cc = '#'                       " start of an Awk comment
+	"
 	" patterns to ignore when adjusting line-end comments (maybe incomplete):
-	let	s:AlignRegex	= [
-				\	'\([^"]*"[^"]*"\)\+' ,
-				\	]
-
-	if !exists("b:Awk_LineEndCommentColumn")
-		let	b:Awk_LineEndCommentColumn	= s:Awk_LineEndCommColDefault
+ 	let align_regex	= join( s:AlignRegex, '\|' )
+	"
+	" local position
+	if !exists( 'b:Awk_LineEndCommentColumn' )
+		let b:Awk_LineEndCommentColumn = s:Awk_LineEndCommColDefault
 	endif
-
+	let correct_idx = b:Awk_LineEndCommentColumn
+	"
+	" === plug-in specific code ends here                 ===
+	" === the behavior is governed by the variables above ===
+	"
+	" save the cursor position
 	let save_cursor = getpos('.')
-
-	let	save_expandtab	= &expandtab
-	exe	':set expandtab'
-
-	let	linenumber	= a:firstline
-	exe ':'.a:firstline
-
-	while linenumber <= a:lastline
-		let	line= getline('.')
-
-		let idx1	= 1 + match( line, '\s*#.*$', 0 )
-		let idx2	= 1 + match( line,    '#.*$', 0 )
-
-		" comment with leading whitespaces left unchanged
-		if     match( line, '^\s*#' ) == 0
-			let idx1	= 0
-			let idx2	= 0
+	"
+	for line in range( a:firstline, a:lastline )
+		silent exe ':'.line
+		"
+		let linetxt = getline('.')
+		"
+		" "pure" comment line left unchanged
+		if match ( linetxt, '^\s*'.cc ) == 0
+			"echo 'line '.line.': "pure" comment'
+			continue
 		endif
-
-		for regex in s:AlignRegex
-			if match( line, regex ) > -1
-				let start	= matchend( line, regex )
-				let idx1	= 1 + match( line, '\s*#.*$', start )
-				let idx2	= 1 + match( line,    '#.*$', start )
+		"
+		let b_idx1 = 1 + match ( linetxt, '\s*'.cc.'.*$', 0 )
+		let b_idx2 = 1 + match ( linetxt,       cc.'.*$', 0 )
+		"
+		" not found?
+		if b_idx1 == 0
+			"echo 'line '.line.': no end-of-line comment'
+			continue
+		endif
+		"
+		" walk through ignored patterns
+		let idx_start = 0
+		"
+		while 1
+			let this_start = match ( linetxt, align_regex, idx_start )
+			"
+			if this_start == -1
 				break
+			else
+				let idx_start = matchend ( linetxt, align_regex, idx_start )
+				"echo 'line '.line.': ignoring >>>'.strpart(linetxt,this_start,idx_start-this_start).'<<<'
 			endif
-		endfor
-
-		let	ln	= line('.')
-		call setpos('.', [ 0, ln, idx1, 0 ] )
-		let vpos1	= virtcol('.')
-		call setpos('.', [ 0, ln, idx2, 0 ] )
-		let vpos2	= virtcol('.')
-
-		if   ! (   vpos2 == b:Awk_LineEndCommentColumn
-					\	|| vpos1 > b:Awk_LineEndCommentColumn
-					\	|| idx2  == 0 )
-
-			exe ':.,.retab'
-			" insert some spaces
-			if vpos2 < b:Awk_LineEndCommentColumn
-				let	diff	= b:Awk_LineEndCommentColumn-vpos2
-				call setpos('.', [ 0, ln, vpos2, 0 ] )
-				let	@"	= ' '
-				exe 'normal	'.diff.'P'
-			end
-
-			" remove some spaces
-			if vpos1 < b:Awk_LineEndCommentColumn && vpos2 > b:Awk_LineEndCommentColumn
-				let	diff	= vpos2 - b:Awk_LineEndCommentColumn
-				call setpos('.', [ 0, ln, b:Awk_LineEndCommentColumn, 0 ] )
-				exe 'normal	'.diff.'x'
-			end
-
-		end
-		let linenumber=linenumber+1
-		normal j
-	endwhile
-	" restore tab expansion settings and cursor position
-	let &expandtab	= save_expandtab
-	call setpos('.', save_cursor)
-
+		endwhile
+		"
+		let b_idx1 = 1 + match ( linetxt, '\s*'.cc.'.*$', idx_start )
+		let b_idx2 = 1 + match ( linetxt,       cc.'.*$', idx_start )
+		"
+		" not found?
+		if b_idx1 == 0
+			"echo 'line '.line.': no end-of-line comment'
+			continue
+		endif
+		"
+		call cursor ( line, b_idx2 )
+		let v_idx2 = virtcol('.')
+		"
+		" do b_idx1 last, so the cursor is in the right position for substitute below
+		call cursor ( line, b_idx1 )
+		let v_idx1 = virtcol('.')
+		"
+		" already at right position?
+		if ( v_idx2 == correct_idx )
+			"echo 'line '.line.': already at right position'
+			continue
+		endif
+		" ... or line too long?
+		if ( v_idx1 >  correct_idx )
+			"echo 'line '.line.': line too long'
+			continue
+		endif
+		"
+		" substitute all whitespaces behind the cursor (regex '\%#') and the next character,
+		" to ensure the match is at least one character long
+		silent exe 'substitute/\%#\s*\(\S\)/'.repeat( ' ', correct_idx - v_idx1 ).'\1/'
+		"echo 'line '.line.': adjusted'
+		"
+	endfor
+	"
+	" restore the cursor position
+	call setpos ( '.', save_cursor )
+	"
 endfunction		" ---------- end of function  Awk_AdjustLineEndComm  ----------
 "
 "===  FUNCTION  ================================================================
 "          NAME:  Awk_GetLineEndCommCol     {{{1
 "   DESCRIPTION:  get end-of-line comment position
 "    PARAMETERS:  -
-"       RETURNS:  
+"       RETURNS:
 "===============================================================================
 function! Awk_GetLineEndCommCol ()
 	let actcol	= virtcol(".")
@@ -357,7 +377,7 @@ endfunction		" ---------- end of function  Awk_GetLineEndCommCol  ----------
 "          NAME:  Awk_EndOfLineComment     {{{1
 "   DESCRIPTION:  single end-of-line comment
 "    PARAMETERS:  -
-"       RETURNS:  
+"       RETURNS:
 "===============================================================================
 function! Awk_EndOfLineComment ( ) range
 	if !exists("b:Awk_LineEndCommentColumn")
@@ -374,7 +394,7 @@ function! Awk_EndOfLineComment ( ) range
 			if linelength < b:Awk_LineEndCommentColumn
 				let diff	= b:Awk_LineEndCommentColumn -1 -linelength
 			endif
-			exe "normal	".diff."A "
+			exe "normal!	".diff."A "
 			call mmtemplates#core#InsertTemplate(g:Awk_Templates, 'Comments.end-of-line comment')
 		endif
 	endfor
@@ -384,7 +404,7 @@ endfunction		" ---------- end of function  Awk_EndOfLineComment  ----------
 "          NAME:  Awk_CodeComment     {{{1
 "   DESCRIPTION:  Code -> Comment
 "    PARAMETERS:  -
-"       RETURNS:  
+"       RETURNS:
 "===============================================================================
 function! Awk_CodeComment() range
 	" add '# ' at the beginning of the lines
@@ -397,7 +417,7 @@ endfunction    " ----------  end of function Awk_CodeComment  ----------
 "          NAME:  Awk_CommentCode     {{{1
 "   DESCRIPTION:  Comment -> Code
 "    PARAMETERS:  toggle - 0 : uncomment, 1 : toggle comment
-"       RETURNS:  
+"       RETURNS:
 "===============================================================================
 function! Awk_CommentCode( toggle ) range
 	for i in range( a:firstline, a:lastline )
@@ -417,7 +437,7 @@ endfunction    " ----------  end of function Awk_CommentCode  ----------
 "   DESCRIPTION:  Reread the templates. Also set the character which starts
 "                 the comments in the template files.
 "    PARAMETERS:  -
-"       RETURNS:  
+"       RETURNS:
 "===============================================================================
 function! g:Awk_RereadTemplates ( displaymsg )
 	"
@@ -459,20 +479,22 @@ function! g:Awk_RereadTemplates ( displaymsg )
 		"-------------------------------------------------------------------------------
 		" handle local template files
 		"-------------------------------------------------------------------------------
-		if finddir( s:Awk_LocalTemplateDir ) == ''
+		let templ_dir = fnamemodify( s:Awk_LocalTemplateFile, ":p:h" ).'/'
+		"
+		if finddir( templ_dir ) == ''
 			" try to create a local template directory
 			if exists("*mkdir")
-				try 
-					call mkdir( s:Awk_LocalTemplateDir, "p" )
+				try
+					call mkdir( templ_dir, "p" )
 				catch /.*/
 				endtry
 			endif
 		endif
 
-		if isdirectory( s:Awk_LocalTemplateDir ) && !filereadable( s:Awk_LocalTemplateFile )
+		if isdirectory( templ_dir ) && !filereadable( s:Awk_LocalTemplateFile )
 			" write a default local template file
 			let template	= [	]
-			let sample_template_file	= fnamemodify( s:Awk_GlobalTemplateDir, ':h' ).'/rc/sample_template_file'
+			let sample_template_file	= s:Awk_PluginDir.'/awk-support/rc/sample_template_file'
 			if filereadable( sample_template_file )
 				for line in readfile( sample_template_file )
 					call add( template, line )
@@ -497,7 +519,7 @@ function! g:Awk_RereadTemplates ( displaymsg )
 			call mmtemplates#core#ReadTemplates ( g:Awk_Templates, 'load', s:Awk_LocalTemplateFile )
 			let	messsage	= "Templates read from '".s:Awk_LocalTemplateFile."'"
 		else
-			echomsg "Local template file '".s:Awk_LocalTemplateFile."' not readable." 
+			echomsg "Local template file '".s:Awk_LocalTemplateFile."' not readable."
 			return
 		endif
 		"
@@ -512,11 +534,9 @@ endfunction    " ----------  end of function Awk_RereadTemplates  ----------
 "          NAME:  InitMenus     {{{1
 "   DESCRIPTION:  Initialize menus.
 "    PARAMETERS:  -
-"       RETURNS:  
+"       RETURNS:
 "===============================================================================
 function! s:InitMenus()
-	"
-	" TODO: mapleader configurable
 	"
 	if ! has ( 'menu' )
 		return
@@ -588,8 +608,6 @@ function! s:InitMenus()
 		exe "imenu  <silent> ".s:Awk_RootMenu.'.S&nippets.&edit\ code\ snippet<Tab>'.esc_mapl.'ne  <C-C>:call Awk_CodeSnippet("edit")<CR>'
 		exe "amenu  <silent> ".s:Awk_RootMenu.'.S&nippets.-SepSnippets-                       :'
 		"
-		" :TODO:05.01.2013 11:06:WM: what to do if Awk_CodeSnippet is empty/directory does not exist?
-		"
 	endif
 	"
 	call mmtemplates#core#CreateMenus ( 'g:Awk_Templates', s:Awk_RootMenu, 'do_specials', 'specials_menu', 'S&nippets' )
@@ -597,7 +615,7 @@ function! s:InitMenus()
 	"-------------------------------------------------------------------------------
 	" run
 	"-------------------------------------------------------------------------------
-	" 
+	"
 	exe " menu <silent> ".s:Awk_RootMenu.'.&Run.save\ +\ &run\ script<Tab>'.esc_mapl.'rr\ \ <C-F9>            :call Awk_Run("n")<CR>'
 	exe "imenu <silent> ".s:Awk_RootMenu.'.&Run.save\ +\ &run\ script<Tab>'.esc_mapl.'rr\ \ <C-F9>       <C-C>:call Awk_Run("n")<CR>'
   exe " menu <silent> ".s:Awk_RootMenu.'.&Run.update,\ check\ &syntax<Tab>'.esc_mapl.'rs\ \ <A-F9>          :call Awk_SyntaxCheck("syntax")<CR>'
@@ -615,7 +633,7 @@ function! s:InitMenus()
 	let vhead = 'vmenu <silent> '.s:Awk_RootMenu.'.Run.'
   "
   if !s:MSWIN
-    exe ahead.'make\ script\ &executable<Tab>'.esc_mapl.'re              :call Awk_MakeScriptExecutable()<CR>'
+		exe ahead.'make\ script\ &exec\./not\ exec\.<Tab>'.esc_mapl.'re      :call Awk_MakeScriptExecutable()<CR>'
   endif
 	"
 	exe ahead.'-SEP1-   :'
@@ -687,7 +705,7 @@ function! Awk_JumpForward ()
 	else
 		" try to jump behind parenthesis or strings
 		call search( "[\]})\"'`]", 'W' )
-		normal l
+		normal! l
 	endif
 	return ''
 endfunction    " ----------  end of function Awk_JumpForward  ----------
@@ -717,7 +735,7 @@ function! Awk_CodeSnippet(mode)
         "
         let linesread= line("$")-linesread-1
         if linesread>=0 && match( l:snippetfile, '\.\(ni\|noindent\)$' ) < 0
-          silent exe "normal =".linesread."+"
+          silent exe "normal! =".linesread."+"
         endif
       endif
     endif
@@ -752,7 +770,7 @@ function! Awk_CodeSnippet(mode)
     "
     if a:mode == "write" || a:mode == "writemarked"
 			if has("gui_running") && s:Awk_GuiSnippetBrowser == 'gui'
-				let l:snippetfile=browse(0,"write a code snippet",g:Awk_CodeSnippets,"")
+				let l:snippetfile=browse(1,"write a code snippet",g:Awk_CodeSnippets,"")
 			else
 				let	l:snippetfile=input("write snippet ", g:Awk_CodeSnippets, "file" )
 			endif
@@ -783,7 +801,7 @@ endfunction   " ---------- end of function  Awk_CodeSnippet  ----------
 "   DESCRIPTION:  Make PostScript document from current buffer
 "                 MSWIN : display printer dialog
 "    PARAMETERS:  mode - n : print complete buffer, v : print marked area
-"       RETURNS:  
+"       RETURNS:
 "===============================================================================
 function! Awk_Hardcopy (mode)
   let outfile = expand("%")
@@ -822,7 +840,7 @@ endfunction   " ---------- end of function  Awk_Hardcopy  ----------
 "          NAME:  CreateAdditionalMaps     {{{1
 "   DESCRIPTION:  create additional maps
 "    PARAMETERS:  -
-"       RETURNS:  
+"       RETURNS:
 "===============================================================================
 function! s:CreateAdditionalMaps ()
 	"
@@ -909,21 +927,21 @@ function! s:CreateAdditionalMaps ()
 	nnoremap    <buffer>  <silent>  <LocalLeader>rh        :call Awk_Hardcopy("n")<CR>
 	vnoremap    <buffer>  <silent>  <LocalLeader>rh   <C-C>:call Awk_Hardcopy("v")<CR>
   "
-   map  <buffer>  <silent>  <C-F9>        :call Awk_Run("n")<CR>
-  imap  <buffer>  <silent>  <C-F9>   <C-C>:call Awk_Run("n")<CR>
+   noremap  <buffer>  <silent>  <C-F9>        :call Awk_Run("n")<CR>
+  inoremap  <buffer>  <silent>  <C-F9>   <C-C>:call Awk_Run("n")<CR>
 		"
-   map  <buffer>  <silent>  <A-F9>        :call Awk_SyntaxCheck("syntax")<CR>
-  imap  <buffer>  <silent>  <A-F9>   <C-C>:call Awk_SyntaxCheck("syntax")<CR>
+   noremap  <buffer>  <silent>  <A-F9>        :call Awk_SyntaxCheck("syntax")<CR>
+  inoremap  <buffer>  <silent>  <A-F9>   <C-C>:call Awk_SyntaxCheck("syntax")<CR>
   "
-  map   <buffer>            <S-F9>        :AwkScriptArguments<Space>
-  imap  <buffer>            <S-F9>   <C-C>:AwkScriptArguments<Space>
+  noremap   <buffer>            <S-F9>        :AwkScriptArguments<Space>
+  inoremap  <buffer>            <S-F9>   <C-C>:AwkScriptArguments<Space>
 
 	if s:MSWIN
- 		 map  <buffer>  <silent>  <LocalLeader>ro           :call Awk_Toggle_Gvim_Xterm_MS()<CR>
-		imap  <buffer>  <silent>  <LocalLeader>ro      <Esc>:call Awk_Toggle_Gvim_Xterm_MS()<CR>
+ 		 noremap  <buffer>  <silent>  <LocalLeader>ro           :call Awk_Toggle_Gvim_Xterm_MS()<CR>
+		inoremap  <buffer>  <silent>  <LocalLeader>ro      <Esc>:call Awk_Toggle_Gvim_Xterm_MS()<CR>
 	else
-		 map  <buffer>  <silent>  <LocalLeader>ro           :call Awk_Toggle_Gvim_Xterm()<CR>
-		imap  <buffer>  <silent>  <LocalLeader>ro      <Esc>:call Awk_Toggle_Gvim_Xterm()<CR>
+		 noremap  <buffer>  <silent>  <LocalLeader>ro           :call Awk_Toggle_Gvim_Xterm()<CR>
+		inoremap  <buffer>  <silent>  <LocalLeader>ro      <Esc>:call Awk_Toggle_Gvim_Xterm()<CR>
 	endif
 	"
 	"-------------------------------------------------------------------------------
@@ -936,8 +954,8 @@ function! s:CreateAdditionalMaps ()
 	 noremap  <buffer>  <silent>  <LocalLeader>hp         :call Awk_HelpAwkSupport()<CR>
 	inoremap  <buffer>  <silent>  <LocalLeader>hp    <C-C>:call Awk_HelpAwkSupport()<CR>
 	"
-	nmap    <buffer>  <silent>  <C-j>    i<C-R>=Awk_JumpForward()<CR>
-	imap    <buffer>  <silent>  <C-j>     <C-R>=Awk_JumpForward()<CR>
+	nnoremap    <buffer>  <silent>  <C-j>    i<C-R>=Awk_JumpForward()<CR>
+	inoremap    <buffer>  <silent>  <C-j>     <C-R>=Awk_JumpForward()<CR>
 	"
 	"-------------------------------------------------------------------------------
 	" settings - reset local leader
@@ -959,7 +977,7 @@ function! Awk_HelpAwkSupport ()
 	try
 		:help awksupport
 	catch
-		exe ':helptags '.s:plugin_dir.'/doc'
+		exe ':helptags '.s:Awk_PluginDir.'/doc'
 		:help awksupport
 	endtry
 endfunction    " ----------  end of function Awk_HelpAwkSupport ----------
@@ -995,8 +1013,13 @@ function! Awk_help( type )
 	"-------------------------------------------------------------------------------
 	" open the AWK manual
 	"-------------------------------------------------------------------------------
+	let win_w = winwidth( winnr() )
 	if a:type == 'awk'
-		silent exe ":%!".s:Awk_ManualReader.' 1 awk'
+		if s:UNIX && win_w > 0
+			silent exe ":%! MANWIDTH=".win_w." ".s:Awk_ManualReader." 1 awk"
+		else
+			silent exe ":%!".s:Awk_ManualReader." 1 awk"
+		endif
 
 		if s:MSWIN
 			call s:awk_RemoveSpecialCharacters()
@@ -1022,14 +1045,14 @@ function! s:awk_RemoveSpecialCharacters ( )
 		silent exe ':%s/'.patternbold.'//g'
 	endif
 	setlocal nomodifiable
-	silent normal gg
+	silent normal! gg
 endfunction		" ---------- end of function  s:awk_RemoveSpecialCharacters   ----------
 "
 "===  FUNCTION  ================================================================
 "          NAME:  Awk_Settings     {{{1
 "   DESCRIPTION:  Display plugin settings
 "    PARAMETERS:  -
-"       RETURNS:  
+"       RETURNS:
 "===============================================================================
 function! Awk_Settings ()
 	let	txt =     " awk-Support settings\n\n"
@@ -1041,25 +1064,25 @@ function! Awk_Settings ()
   let txt = txt.'                  licence :  "'.mmtemplates#core#ExpandText( g:Awk_Templates, '|LICENSE|'     )."\"\n"
 	let txt = txt.'             organization :  "'.mmtemplates#core#ExpandText( g:Awk_Templates, '|ORGANIZATION|')."\"\n"
 	let txt = txt.'                  project :  "'.mmtemplates#core#ExpandText( g:Awk_Templates, '|PROJECT|'     )."\"\n"
-	let txt = txt.'           AWK executable :  '.s:Awk_Awk."\n"
+	let txt = txt.'           AWK executable :  "'.s:Awk_Awk."\"\n"
 	if exists( "b:Awk_AwkCmdLineArgs" )
 		let txt = txt.'  AWK cmd. line arguments :  '.b:Awk_AwkCmdLineArgs."\n"
 	endif
 	let txt = txt.'      plugin installation :  "'.s:installation."\"\n"
  	let txt = txt.'   code snippet directory :  "'.s:Awk_CodeSnippets."\"\n"
 	if s:installation == 'system'
-		let txt = txt.'global template directory :  '.s:Awk_GlobalTemplateDir."\n"
+		let txt = txt.'     global template file :  "'.s:Awk_GlobalTemplateFile."\"\n"
 		if filereadable( s:Awk_LocalTemplateFile )
-			let txt = txt.' local template directory :  '.s:Awk_LocalTemplateDir."\n"
+			let txt = txt.'      local template file :  "'.s:Awk_LocalTemplateFile."\"\n"
 		endif
 	else
-		let txt = txt.' local template directory :  '.s:Awk_LocalTemplateDir."\n"
+		let txt = txt.'      local template file :  "'.s:Awk_LocalTemplateFile."\"\n"
 	endif
 	" ----- dictionaries ------------------------
   if !empty(g:Awk_Dictionary_File)
 		let ausgabe= &dictionary
-		let ausgabe= substitute( ausgabe, ",", ",\n                            + ", "g" )
-		let txt = txt."        dictionary file(s) :  ".ausgabe."\n"
+		let ausgabe= substitute( ausgabe, ",", "\",\n                            +\"", "g" )
+		let txt = txt."       dictionary file(s) :  \"".ausgabe."\"\n"
 	endif
 	let txt = txt."\n"
 	let	txt = txt."__________________________________________________________________________\n"
@@ -1077,7 +1100,7 @@ function! Awk_CreateGuiMenus ()
 		amenu   <silent> 40.1010 &Tools.Unload\ Awk\ Support :call Awk_RemoveGuiMenus()<CR>
 		"
 		call g:Awk_RereadTemplates('no')
-		call s:InitMenus () 
+		call s:InitMenus ()
 		"
 		let s:Awk_MenuVisible = 'yes'
 	endif
@@ -1238,7 +1261,7 @@ function! Awk_Run ( mode ) range
 
 	let l:awkCmdLineArgs	= exists("b:Awk_AwkCmdLineArgs") ? ' '.b:Awk_AwkCmdLineArgs.' ' : ''
 
-	if l:arguments =~ '^\s*$' 
+	if l:arguments =~ '^\s*$'
 		echohl WarningMsg
 		echomsg 'Script call has no file argument.'
 		echohl None
@@ -1252,32 +1275,11 @@ function! Awk_Run ( mode ) range
 		"
 		" ----- normal mode ----------
 		"
-		call Awk_SaveOption( 'makeprg' )
-		exe	":setlocal makeprg=".s:Awk_Awk
-		exe	':setlocal errorformat='.s:Awk_Errorformat
-		"
-		exe ':make '.l:awkCmdLineArgs." -f '".l:fullname."' ".l:arguments
+ 		exe ':!'.s:Awk_Awk.l:awkCmdLineArgs." -f '".l:fullname."' ".l:arguments
 		if &term == 'xterm'
 			redraw!
 		endif
 		"
-		call Awk_RestoreOption( 'makeprg' )
-		exe	":botright cwindow"
-
-		if l:currentbuffer != bufname("%")
-			let	pattern	= '^||.*\n\?'
-			setlocal modifiable
-			" remove the regular script output (appears as comment)
-			if search(pattern) != 0
-				silent exe ':%s/'.pattern.'//'
-			endif
-			" read the buffer back to have it parsed and used as the new error list
-			silent exe ':cgetbuffer'
-			setlocal nomodifiable
-			silent exe	':cc'
-		endif
-		"
-		exe	':setlocal errorformat='
 	endif
 	"
 	"------------------------------------------------------------------------------
@@ -1355,7 +1357,7 @@ endfunction    " ----------  end of function Awk_Run  ----------
 "          NAME:  Awk_SyntaxCheck     {{{1
 "   DESCRIPTION:  syntax check
 "    PARAMETERS:  -
-"       RETURNS:  
+"       RETURNS:
 "===============================================================================
 function! Awk_SyntaxCheck ( check )
   exe ":cclose"
@@ -1429,28 +1431,69 @@ endfunction   " ---------- end of function  Awk_SyntaxCheck  ----------
 "          NAME:  Awk_MakeScriptExecutable     {{{1
 "   DESCRIPTION:  make script executable
 "    PARAMETERS:  -
-"       RETURNS:  
+"       RETURNS:
+"===============================================================================
+""function! Awk_MakeScriptExecutable ()
+""  let filename  = fnameescape( expand("%:p") )
+""	if &filetype != 'awk'
+""		echo '"'.filename.'" not an awk script.'
+""		return
+""	endif
+""  if executable(filename) == 0
+""    silent exe "!chmod u+x ".filename
+""    redraw!
+""    if v:shell_error
+""      echohl WarningMsg
+""      echo 'Could not make "'.filename.'" executable !'
+""    else
+""      echohl Search
+""      echo 'Made "'.filename.'" executable.'
+""    endif
+""    echohl None
+""	else
+""		echo '"'.filename.'" is already executable.'
+""  endif
+""endfunction   " ---------- end of function  Awk_MakeScriptExecutable  ----------
+"
+"===  FUNCTION  ================================================================
+"          NAME:  Awk_MakeScriptExecutable     {{{1
+"   DESCRIPTION:  make script executable
+"    PARAMETERS:  -
+"       RETURNS:
 "===============================================================================
 function! Awk_MakeScriptExecutable ()
-  let filename  = fnameescape( expand("%:p") )
-	if &filetype != 'awk'
-		echo '"'.filename.'" not an awk script.'
-		return
-	endif
-  if executable(filename) == 0 
-    silent exe "!chmod u+x ".filename
-    redraw!
-    if v:shell_error
-      echohl WarningMsg
-      echo 'Could not make "'.filename.'" executable !'
-    else
-      echohl Search
-      echo 'Made "'.filename.'" executable.'
-    endif
-    echohl None
+	let filename	= expand("%:p")
+	if executable(filename) == 0
+		"
+		" not executable -> executable
+		"
+		if Awk_Input( '"'.filename.'" NOT executable. Make it executable [y/n] : ', 'y' ) == 'y'
+			silent exe "!chmod u+x ".shellescape(filename)
+			if v:shell_error
+				echohl WarningMsg
+				echo 'Could not make "'.filename.'" executable!'
+			else
+				echohl Search
+				echo 'Made "'.filename.'" executable.'
+			endif
+			echohl None
+		endif
 	else
-		echo '"'.filename.'" is already executable.'
-  endif
+		"
+		" executable -> not executable
+		"
+		if Awk_Input( '"'.filename.'" is executable. Make it NOT executable [y/n] : ', 'y' ) == 'y'
+			silent exe "!chmod u-x ".shellescape(filename)
+			if v:shell_error
+				echohl WarningMsg
+				echo 'Could not make "'.filename.'" not executable!'
+			else
+				echohl Search
+				echo 'Made "'.filename.'" not executable.'
+			endif
+			echohl None
+		endif
+	endif
 endfunction   " ---------- end of function  Awk_MakeScriptExecutable  ----------
 
 "----------------------------------------------------------------------
